@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Anggota</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👥 Manajemen Anggota</h1>
+            <nav class="navbar">
+                <a href="index.html" class="nav-link">Dashboard</a>
+                <a href="anggota.html" class="nav-link active">Anggota</a>
+                <a href="buku.html" class="nav-link">Buku</a>
+                <a href="peminjaman.html" class="nav-link">Peminjaman</a>
+                <a href="pengembalian.html" class="nav-link">Pengembalian</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Tambah Anggota Baru</h3>
+                    <button class="btn btn-primary" id="toggleBtn" onclick="toggleForm()">+ Tambah Anggota</button>
+                </div>
+
+                <form id="form-anggota" class="form-hidden">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="nomor_anggota">Nomor Anggota *</label>
+                            <input type="text" id="nomor_anggota" placeholder="Nomor Anggota" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nama">Nama Lengkap *</label>
+                            <input type="text" id="nama" placeholder="Nama Lengkap" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="telepon">Telepon</label>
+                            <input type="text" id="telepon" placeholder="Telepon">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="Email">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="alamat">Alamat</label>
+                            <textarea id="alamat" placeholder="Alamat" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select id="status">
+                                <option value="Aktif">Aktif</option>
+                                <option value="Non-Aktif">Non-Aktif</option>
+                                <option value="Ditangguhkan">Ditangguhkan</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Simpan</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Daftar Anggota</h3>
+                <div class="table-container">
+                    <table id="tabel-anggota">
+                        <thead>
+                            <tr>
+                                <th>No. Anggota</th>
+                                <th>Nama</th>
+                                <th>Telepon</th>
+                                <th>Email</th>
+                                <th>Tanggal Daftar</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-anggota">
+                            <tr>
+                                <td colspan="7" class="loading">Memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Konfigurasi API - SESUAIKAN DENGAN ENDPOINT ANDA
+        const API_BASE = 'api/anggota.php'; // Ganti dengan endpoint API Anda
+        
+        let editMode = false;
+        let currentEditId = null;
+
+        // Load data saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnggota();
+            
+            // Test koneksi API
+            testAPI();
+        });
+
+        // Test API connection
+        async function testAPI() {
+            try {
+                console.log('Testing API connection to:', API_BASE);
+                const response = await fetch(API_BASE);
+                const text = await response.text();
+                console.log('API Response:', text);
+            } catch (error) {
+                console.error('API Test Error:', error);
+            }
+        }
+
+        // Toggle form show/hide
+        function toggleForm() {
+            const form = document.getElementById('form-anggota');
+            const toggleBtn = document.getElementById('toggleBtn');
+            
+            if (form.classList.contains('form-hidden')) {
+                form.classList.remove('form-hidden');
+                toggleBtn.textContent = '− Tutup Form';
+                form.scrollIntoView({ behavior: 'smooth' });
+                
+                // Auto-generate nomor anggota jika tidak dalam mode edit
+                if (!editMode && !document.getElementById('nomor_anggota').value) {
+                    document.getElementById('nomor_anggota').value = generateNomorAnggota();
+                }
+            } else {
+                resetForm();
+            }
+        }
+
+        // Reset form ke keadaan awal
+        function resetForm() {
+            document.getElementById('form-anggota').reset();
+            document.getElementById('form-anggota').classList.add('form-hidden');
+            document.getElementById('submitBtn').textContent = 'Simpan';
+            document.getElementById('toggleBtn').textContent = '+ Tambah Anggota';
+            editMode = false;
+            currentEditId = null;
+        }
+
+        // Handle form submission - PERBAIKAN UTAMA
+        document.getElementById('form-anggota').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('Form submitted');
+            
+            // Collect form data
+            const formData = {
+                nomor_anggota: document.getElementById('nomor_anggota').value.trim(),
+                nama: document.getElementById('nama').value.trim(),
+                telepon: document.getElementById('telepon').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                alamat: document.getElementById('alamat').value.trim(),
+                status: document.getElementById('status').value
+            };
+
+            console.log('Form data:', formData);
+
+            // Validation
+            if (!formData.nomor_anggota || !formData.nama) {
+                alert('Nomor anggota dan nama harus diisi!');
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Menyimpan...';
+            submitBtn.disabled = true;
+
+            try {
+                let url = API_BASE;
+                let method = 'POST';
+                let successMessage = 'Anggota berhasil ditambahkan!';
+
+                if (editMode) {
+                    formData.id_anggota = currentEditId;
+                    method = 'PUT';
+                    successMessage = 'Anggota berhasil diperbarui!';
+                }
+
+                console.log('Sending request:', { method, url, formData });
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                console.log('Response status:', response.status);
+
+                // Handle response
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+
+                let result;
+                try {
+                    result = responseText ? JSON.parse(responseText) : {};
+                } catch (parseError) {
+                    console.error('JSON Parse Error:', parseError);
+                    // Jika bukan JSON tapi status OK, anggap sukses
+                    if (response.ok) {
+                        result = { status: 'success', message: 'Data berhasil disimpan' };
+                    } else {
+                        throw new Error('Response tidak valid dari server');
+                    }
+                }
+
+                if (response.ok) {
+                    alert(successMessage);
+                    resetForm();
+                    loadAnggota();
+                } else {
+                    throw new Error(result.message || result.error || `Error ${response.status}`);
+                }
+                
+            } catch (error) {
+                console.error('Submission Error:', error);
+                alert('Error: ' + error.message);
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Load data anggota dari API
+        async function loadAnggota() {
+            const tbody = document.getElementById('tbody-anggota');
+            
+            try {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">Memuat data...</td></tr>';
+                
+                console.log('Loading data from:', API_BASE);
+                const response = await fetch(API_BASE);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Handle response as text first
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+                
+                let result;
+                try {
+                    result = responseText ? JSON.parse(responseText) : [];
+                } catch (parseError) {
+                    console.error('JSON Parse Error:', parseError);
+                    throw new Error('Format response tidak valid');
+                }
+                
+                // Handle different response formats
+                let anggota;
+                if (Array.isArray(result)) {
+                    anggota = result;
+                } else if (result && Array.isArray(result.data)) {
+                    anggota = result.data;
+                } else if (result && result.status === 'success' && Array.isArray(result.data)) {
+                    anggota = result.data;
+                } else {
+                    throw new Error('Format data tidak dikenali');
+                }
+                
+                displayAnggota(anggota);
+                
+            } catch (error) {
+                console.error('Error loading anggota:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="error">
+                            Gagal memuat data: ${error.message}
+                            <br><small>Periksa console untuk detail</small>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Display data anggota ke tabel
+        function displayAnggota(anggota) {
+            const tbody = document.getElementById('tbody-anggota');
+            
+            if (!Array.isArray(anggota) || anggota.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #7f8c8d;">
+                            Tidak ada data anggota
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = anggota.map(agt => `
+                <tr>
+                    <td><strong>${agt.nomor_anggota || '-'}</strong></td>
+                    <td>${agt.nama || '-'}</td>
+                    <td>${agt.telepon || '-'}</td>
+                    <td>${agt.email || '-'}</td>
+                    <td>${formatDate(agt.tanggal_daftar)}</td>
+                    <td>
+                        <span class="status ${(agt.status || 'Aktif').toLowerCase().replace(' ', '-')}">
+                            ${agt.status || 'Aktif'}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        <button class="btn btn-warning btn-sm" onclick="editAnggota(${agt.id_anggota})">
+                            Edit
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAnggota(${agt.id_anggota})">
+                            Hapus
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Edit anggota
+        async function editAnggota(id) {
+            try {
+                console.log('Editing anggota ID:', id);
+                const response = await fetch(`${API_BASE}?id=${id}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Handle response as text first
+                const responseText = await response.text();
+                console.log('Edit response:', responseText);
+                
+                let result;
+                try {
+                    result = responseText ? JSON.parse(responseText) : null;
+                } catch (parseError) {
+                    throw new Error('Response tidak valid dari server');
+                }
+                
+                const anggota = result.data || result;
+                
+                if (!anggota) {
+                    throw new Error('Data anggota tidak ditemukan');
+                }
+                
+                // Fill form with member data
+                document.getElementById('nomor_anggota').value = anggota.nomor_anggota || '';
+                document.getElementById('nama').value = anggota.nama || '';
+                document.getElementById('telepon').value = anggota.telepon || '';
+                document.getElementById('email').value = anggota.email || '';
+                document.getElementById('alamat').value = anggota.alamat || '';
+                document.getElementById('status').value = anggota.status || 'Aktif';
+                
+                // Set edit mode
+                editMode = true;
+                currentEditId = id;
+                document.getElementById('submitBtn').textContent = 'Update Anggota';
+                document.getElementById('form-anggota').classList.remove('form-hidden');
+                document.getElementById('toggleBtn').textContent = '− Tutup Form';
+                
+                // Scroll to form
+                document.getElementById('form-anggota').scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error('Error editing anggota:', error);
+            }
+        }
+
+        // Delete anggota
+        async function deleteAnggota(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus anggota ini?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id_anggota: id })
+                });
+
+                // Handle response
+                const responseText = await response.text();
+                console.log('Delete response:', responseText);
+                
+                let result;
+                try {
+                    result = responseText ? JSON.parse(responseText) : {};
+                } catch (parseError) {
+                    // Jika bukan JSON tapi status OK, anggap sukses
+                    if (response.ok) {
+                        result = { status: 'success', message: 'Data berhasil dihapus' };
+                    } else {
+                        throw new Error('Response tidak valid dari server');
+                    }
+                }
+
+                if (response.ok) {
+                    alert(result.message || 'Anggota berhasil dihapus!');
+                    loadAnggota();
+                } else {
+                    throw new Error(result.message || result.error || 'Gagal menghapus anggota');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error('Error deleting anggota:', error);
+            }
+        }
+
+        // Format tanggal
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        // Auto-generate nomor anggota
+        function generateNomorAnggota() {
+            const timestamp = new Date().getTime().toString().slice(-4);
+            return `AGT${timestamp}`;
+        }
+    </script>
+</body>
+</html>

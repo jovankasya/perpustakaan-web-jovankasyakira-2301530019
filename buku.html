@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Buku</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📖 Manajemen Buku</h1>
+            <nav class="navbar">
+                <a href="index.html" class="nav-link">Dashboard</a>
+                <a href="anggota.html" class="nav-link">Anggota</a>
+                <a href="buku.html" class="nav-link active">Buku</a>
+                <a href="peminjaman.html" class="nav-link">Peminjaman</a>
+                <a href="pengembalian.html" class="nav-link">Pengembalian</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Pencarian Buku</h3>
+                    <div class="search-container">
+                        <input type="text" id="search-input" placeholder="Cari judul atau ISBN...">
+                        <button class="btn btn-primary" onclick="searchBuku()">Cari</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Tambah Buku Baru</h3>
+                    <button class="btn btn-primary" onclick="toggleForm()">+ Tambah Buku</button>
+                </div>
+
+                <form id="form-buku" class="form-hidden">
+                    <div class="form-grid">
+                        <input type="text" id="isbn" placeholder="ISBN" required>
+                        <input type="text" id="judul" placeholder="Judul Buku" required>
+                        <input type="number" id="id_kategori" placeholder="ID Kategori" required>
+                        <input type="number" id="id_penerbit" placeholder="ID Penerbit" required>
+                        <input type="number" id="tahun_terbit" placeholder="Tahun Terbit" required>
+                        <input type="number" id="stok" placeholder="Stok" required>
+                        <input type="text" id="rak_lokasi" placeholder="Lokasi Rak">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Daftar Buku</h3>
+                <div class="table-container">
+                    <table id="tabel-buku">
+                        <thead>
+                            <tr>
+                                <th>ISBN</th>
+                                <th>Judul</th>
+                                <th>Kategori</th>
+                                <th>Penerbit</th>
+                                <th>Tahun</th>
+                                <th>Stok</th>
+                                <th>Lokasi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-buku">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function toggleForm() {
+            const form = document.getElementById('form-buku');
+            form.classList.toggle('form-hidden');
+        }
+
+        function resetForm() {
+            document.getElementById('form-buku').reset();
+            document.getElementById('form-buku').classList.add('form-hidden');
+        }
+
+        async function searchBuku() {
+            const keyword = document.getElementById('search-input').value;
+            try {
+                const response = await fetch(`api/buku.php?search=${encodeURIComponent(keyword)}`);
+                const buku = await response.json();
+                displayBuku(buku);
+            } catch (error) {
+                console.error('Error searching buku:', error);
+            }
+        }
+
+        document.getElementById('form-buku').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                isbn: document.getElementById('isbn').value,
+                judul: document.getElementById('judul').value,
+                id_kategori: document.getElementById('id_kategori').value,
+                id_penerbit: document.getElementById('id_penerbit').value,
+                tahun_terbit: document.getElementById('tahun_terbit').value,
+                stok: document.getElementById('stok').value,
+                rak_lokasi: document.getElementById('rak_lokasi').value
+            };
+
+            try {
+                const response = await fetch('api/buku.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    resetForm();
+                    loadBuku();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        function displayBuku(buku) {
+            const tbody = document.getElementById('tbody-buku');
+            tbody.innerHTML = buku.map(b => `
+                <tr>
+                    <td>${b.isbn}</td>
+                    <td>${b.judul}</td>
+                    <td>${b.nama_kategori || '-'}</td>
+                    <td>${b.nama_penerbit || '-'}</td>
+                    <td>${b.tahun_terbit}</td>
+                    <td>${b.stok}</td>
+                    <td>${b.rak_lokasi || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadBuku() {
+            try {
+                const response = await fetch('api/buku.php');
+                const buku = await response.json();
+                displayBuku(buku);
+            } catch (error) {
+                console.error('Error loading buku:', error);
+            }
+        }
+
+        loadBuku();
+    </script>
+</body>
+</html>

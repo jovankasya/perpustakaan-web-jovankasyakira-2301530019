@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengembalian Buku</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📤 Pengembalian Buku</h1>
+            <nav class="navbar">
+                <a href="index.html" class="nav-link">Dashboard</a>
+                <a href="anggota.html" class="nav-link">Anggota</a>
+                <a href="buku.html" class="nav-link">Buku</a>
+                <a href="peminjaman.html" class="nav-link">Peminjaman</a>
+                <a href="pengembalian.html" class="nav-link active">Pengembalian</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="card">
+                <h3>Form Pengembalian</h3>
+                <form id="form-pengembalian">
+                    <div class="form-grid">
+                        <input type="text" id="nomor_peminjaman" placeholder="Nomor Peminjaman" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Proses Pengembalian</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="result-container"></div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('form-pengembalian').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nomor_peminjaman = document.getElementById('nomor_peminjaman').value;
+
+            try {
+                const response = await fetch('api/pengembalian.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ nomor_peminjaman })
+                });
+
+                const result = await response.json();
+                const resultContainer = document.getElementById('result-container');
+                
+                if (response.ok) {
+                    let html = `<div class="card success">
+                        <h3>✅ Pengembalian Berhasil</h3>
+                        <p>${result.message}</p>`;
+                    
+                    if (result.denda) {
+                        html += `<p><strong>Denda:</strong> Rp ${result.denda.toLocaleString()}</p>`;
+                        html += `<p><strong>Keterangan:</strong> ${result.keterangan}</p>`;
+                    }
+                    
+                    html += `</div>`;
+                    resultContainer.innerHTML = html;
+                    
+                    document.getElementById('form-pengembalian').reset();
+                } else {
+                    resultContainer.innerHTML = `
+                        <div class="card error">
+                            <h3>❌ Error</h3>
+                            <p>${result.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result-container').innerHTML = `
+                    <div class="card error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

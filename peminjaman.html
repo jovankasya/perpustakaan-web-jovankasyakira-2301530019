@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peminjaman Buku</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📥 Peminjaman Buku</h1>
+            <nav class="navbar">
+                <a href="index.html" class="nav-link">Dashboard</a>
+                <a href="anggota.html" class="nav-link">Anggota</a>
+                <a href="buku.html" class="nav-link">Buku</a>
+                <a href="peminjaman.html" class="nav-link active">Peminjaman</a>
+                <a href="pengembalian.html" class="nav-link">Pengembalian</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="card">
+                <h3>Form Peminjaman</h3>
+                <form id="form-peminjaman">
+                    <div class="form-grid">
+                        <input type="number" id="id_anggota" placeholder="ID Anggota" required>
+                    </div>
+                    
+                    <div id="buku-list">
+                        <div class="buku-item">
+                            <input type="number" placeholder="ID Buku" class="buku-id" required>
+                            <input type="number" placeholder="Jumlah" class="buku-jumlah" value="1" required>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeBuku(this)">Hapus</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="addBuku()">+ Tambah Buku</button>
+                        <button type="submit" class="btn btn-primary">Proses Peminjaman</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Riwayat Peminjaman</h3>
+                <div class="table-container">
+                    <table id="tabel-peminjaman">
+                        <thead>
+                            <tr>
+                                <th>No. Peminjaman</th>
+                                <th>Anggota</th>
+                                <th>Tanggal Pinjam</th>
+                                <th>Tanggal Kembali</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-peminjaman">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function addBuku() {
+            const bukuList = document.getElementById('buku-list');
+            const newBuku = document.createElement('div');
+            newBuku.className = 'buku-item';
+            newBuku.innerHTML = `
+                <input type="number" placeholder="ID Buku" class="buku-id" required>
+                <input type="number" placeholder="Jumlah" class="buku-jumlah" value="1" required>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeBuku(this)">Hapus</button>
+            `;
+            bukuList.appendChild(newBuku);
+        }
+
+        function removeBuku(button) {
+            if (document.querySelectorAll('.buku-item').length > 1) {
+                button.parentElement.remove();
+            }
+        }
+
+        document.getElementById('form-peminjaman').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const id_anggota = document.getElementById('id_anggota').value;
+            const bukuItems = document.querySelectorAll('.buku-item');
+            
+            const buku_list = Array.from(bukuItems).map(item => ({
+                id_buku: item.querySelector('.buku-id').value,
+                jumlah: item.querySelector('.buku-jumlah').value
+            }));
+
+            try {
+                const response = await fetch('api/peminjaman.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id_anggota, buku_list })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`Peminjaman berhasil! Nomor: ${result.nomor_peminjaman}`);
+                    document.getElementById('form-peminjaman').reset();
+                    document.getElementById('buku-list').innerHTML = `
+                        <div class="buku-item">
+                            <input type="number" placeholder="ID Buku" class="buku-id" required>
+                            <input type="number" placeholder="Jumlah" class="buku-jumlah" value="1" required>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeBuku(this)">Hapus</button>
+                        </div>
+                    `;
+                    loadPeminjaman();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        async function loadPeminjaman() {
+            try {
+                const response = await fetch('api/peminjaman.php');
+                const peminjaman = await response.json();
+                
+                const tbody = document.getElementById('tbody-peminjaman');
+                tbody.innerHTML = peminjaman.map(p => `
+                    <tr>
+                        <td>${p.nomor_peminjaman}</td>
+                        <td>${p.nama_anggota}</td>
+                        <td>${p.tanggal_pinjam}</td>
+                        <td>${p.tanggal_kembali_rencana}</td>
+                        <td><span class="status ${p.status.toLowerCase()}">${p.status}</span></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading peminjaman:', error);
+            }
+        }
+
+        loadPeminjaman();
+    </script>
+</body>
+</html>

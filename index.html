@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Perpustakaan</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Sistem Manajemen Perpustakaan</h1>
+            <nav class="navbar">
+                <a href="index.html" class="nav-link active">Dashboard</a>
+                <a href="anggota.html" class="nav-link">Anggota</a>
+                <a href="buku.html" class="nav-link">Buku</a>
+                <a href="peminjaman.html" class="nav-link">Peminjaman</a>
+                <a href="pengembalian.html" class="nav-link">Pengembalian</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="dashboard-grid">
+                <div class="card stat-card">
+                    <h3>Total Anggota</h3>
+                    <div class="stat-number" id="total-anggota">0</div>
+                </div>
+                <div class="card stat-card">
+                    <h3>Total Buku</h3>
+                    <div class="stat-number" id="total-buku">0</div>
+                </div>
+                <div class="card stat-card">
+                    <h3>Peminjaman Aktif</h3>
+                    <div class="stat-number" id="peminjaman-aktif">0</div>
+                </div>
+                <div class="card stat-card">
+                    <h3>Buku Terpopuler</h3>
+                    <div class="stat-number" id="buku-populer">-</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Aktivitas Terbaru</h3>
+                <div id="aktivitas-terbaru">
+                    <p>Memuat data...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                const [anggotaRes, bukuRes, peminjamanRes, statistikRes] = await Promise.all([
+                    fetch('api/anggota.php'),
+                    fetch('api/buku.php'),
+                    fetch('api/peminjaman.php'),
+                    fetch('api/laporan.php?type=statistik')
+                ]);
+
+                const anggota = await anggotaRes.json();
+                const buku = await bukuRes.json();
+                const peminjaman = await peminjamanRes.json();
+                const statistik = await statistikRes.json();
+
+                document.getElementById('total-anggota').textContent = anggota.length;
+                document.getElementById('total-buku').textContent = buku.length;
+                
+                const peminjamanAktif = peminjaman.filter(p => p.status === 'Dipinjam').length;
+                document.getElementById('peminjaman-aktif').textContent = peminjamanAktif;
+
+                if (statistik.length > 0) {
+                    document.getElementById('buku-populer').textContent = statistik[0].judul;
+                }
+
+                const aktivitas = peminjaman.slice(0, 5).map(p => `
+                    <div class="activity-item">
+                        <strong>${p.nomor_peminjaman}</strong> - ${p.nama_anggota}
+                        <span class="status ${p.status.toLowerCase()}">${p.status}</span>
+                    </div>
+                `).join('');
+                
+                document.getElementById('aktivitas-terbaru').innerHTML = aktivitas || '<p>Tidak ada aktivitas</p>';
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('aktivitas-terbaru').innerHTML = '<p>Error memuat data</p>';
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>

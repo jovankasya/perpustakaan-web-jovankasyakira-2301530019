@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Anggota Perpustakaan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .navbar {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            text-decoration: none;
+            color: #333;
+            border-radius: 5px;
+            background: #ecf0f1;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .nav-link:hover {
+            background: #bdc3c7;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .form-hidden {
+            display: none;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        input, select, textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #219a52;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            display: inline-block;
+            min-width: 80px;
+        }
+
+        .status.aktif {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.non-aktif {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.ditangguhkan {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #e74c3c;
+            background: #f8d7da;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success {
+            text-align: center;
+            padding: 20px;
+            color: #155724;
+            background: #d4edda;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-actions {
+                justify-content: stretch;
+            }
+            
+            .form-actions .btn {
+                flex: 1;
+            }
+            
+            .navbar {
+                flex-direction: column;
+            }
+            
+            th, td {
+                padding: 8px 4px;
+                font-size: 14px;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👥 Manajemen Anggota Perpustakaan</h1>
+            <nav class="navbar">
+                <a href="index.html" class="nav-link">Dashboard</a>
+                <a href="anggota.html" class="nav-link active">Anggota</a>
+                <a href="buku.html" class="nav-link">Buku</a>
+                <a href="peminjaman.html" class="nav-link">Peminjaman</a>
+                <a href="pengembalian.html" class="nav-link">Pengembalian</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Card Form Tambah Anggota -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tambah Anggota Baru</h2>
+                    <button class="btn btn-primary" onclick="toggleForm()" id="toggleBtn">
+                        + Tambah Anggota
+                    </button>
+                </div>
+
+                <form id="form-anggota" class="form-hidden">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="nomor_anggota">Nomor Anggota *</label>
+                            <input type="text" id="nomor_anggota" placeholder="AGT001" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nama">Nama Lengkap *</label>
+                            <input type="text" id="nama" placeholder="Nama lengkap anggota" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="telepon">Telepon</label>
+                            <input type="text" id="telepon" placeholder="08123456789">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="email@example.com">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="alamat">Alamat</label>
+                            <textarea id="alamat" placeholder="Alamat lengkap" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select id="status">
+                                <option value="Aktif">Aktif</option>
+                                <option value="Non-Aktif">Non-Aktif</option>
+                                <option value="Ditangguhkan">Ditangguhkan</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            Simpan Anggota
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Card Daftar Anggota -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Daftar Anggota</h2>
+                    <button class="btn btn-primary" onclick="loadAnggota()">
+                        🔄 Refresh
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table id="tabel-anggota">
+                        <thead>
+                            <tr>
+                                <th>No. Anggota</th>
+                                <th>Nama</th>
+                                <th>Telepon</th>
+                                <th>Email</th>
+                                <th>Tanggal Daftar</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-anggota">
+                            <tr>
+                                <td colspan="7" class="loading">Memuat data anggota...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Konfigurasi API - SESUAIKAN DENGAN ENDPOINT ANDA
+        const API_BASE = 'api/anggota.php'; // Ganti dengan endpoint API Anda
+        
+        let editMode = false;
+        let currentEditId = null;
+
+        // Load data saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnggota();
+        });
+
+        // Toggle form show/hide
+        function toggleForm() {
+            const form = document.getElementById('form-anggota');
+            const toggleBtn = document.getElementById('toggleBtn');
+            
+            if (form.classList.contains('form-hidden')) {
+                form.classList.remove('form-hidden');
+                toggleBtn.textContent = '− Tutup Form';
+                form.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                resetForm();
+            }
+        }
+
+        // Reset form ke keadaan awal
+        function resetForm() {
+            document.getElementById('form-anggota').reset();
+            document.getElementById('form-anggota').classList.add('form-hidden');
+            document.getElementById('submitBtn').textContent = 'Simpan Anggota';
+            document.getElementById('toggleBtn').textContent = '+ Tambah Anggota';
+            editMode = false;
+            currentEditId = null;
+        }
+
+        // Handle form submission
+        document.getElementById('form-anggota').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Collect form data
+            const formData = {
+                nomor_anggota: document.getElementById('nomor_anggota').value.trim(),
+                nama: document.getElementById('nama').value.trim(),
+                telepon: document.getElementById('telepon').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                alamat: document.getElementById('alamat').value.trim(),
+                status: document.getElementById('status').value,
+                tanggal_daftar: new Date().toISOString().split('T')[0] // Format YYYY-MM-DD
+            };
+
+            // Validation
+            if (!formData.nomor_anggota || !formData.nama) {
+                alert('Nomor anggota dan nama harus diisi!');
+                return;
+            }
+
+            try {
+                let url = API_BASE;
+                let method = 'POST';
+                let successMessage = 'Anggota berhasil ditambahkan!';
+
+                if (editMode) {
+                    formData.id_anggota = currentEditId;
+                    method = 'PUT';
+                    successMessage = 'Anggota berhasil diperbarui!';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(successMessage);
+                    resetForm();
+                    loadAnggota();
+                } else {
+                    alert('Error: ' + (result.message || result.error || 'Terjadi kesalahan'));
+                }
+            } catch (error) {
+                alert('Network Error: ' + error.message);
+                console.error('Error:', error);
+            }
+        });
+
+        // Load data anggota dari API
+        async function loadAnggota() {
+            const tbody = document.getElementById('tbody-anggota');
+            
+            try {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">Memuat data...</td></tr>';
+                
+                const response = await fetch(API_BASE);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Asumsi response langsung array atau {data: array}
+                const anggota = result.data || result;
+                
+                if (Array.isArray(anggota)) {
+                    displayAnggota(anggota);
+                } else {
+                    throw new Error('Format data tidak valid');
+                }
+                
+            } catch (error) {
+                console.error('Error loading anggota:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="error">
+                            Gagal memuat data: ${error.message}
+                            <br><small>Pastikan endpoint API benar dan server berjalan</small>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Display data anggota ke tabel
+        function displayAnggota(anggota) {
+            const tbody = document.getElementById('tbody-anggota');
+            
+            if (anggota.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #7f8c8d;">
+                            Tidak ada data anggota
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = anggota.map(agt => `
+                <tr>
+                    <td><strong>${agt.nomor_anggota || '-'}</strong></td>
+                    <td>${agt.nama || '-'}</td>
+                    <td>${agt.telepon || '-'}</td>
+                    <td>${agt.email || '-'}</td>
+                    <td>${formatDate(agt.tanggal_daftar)}</td>
+                    <td>
+                        <span class="status ${(agt.status || 'Aktif').toLowerCase().replace(' ', '-')}">
+                            ${agt.status || 'Aktif'}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        <button class="btn btn-warning btn-sm" onclick="editAnggota(${agt.id_anggota})">
+                            Edit
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAnggota(${agt.id_anggota})">
+                            Hapus
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Edit anggota
+        async function editAnggota(id) {
+            try {
+                const response = await fetch(`${API_BASE}?id=${id}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                const anggota = result.data || result;
+                
+                if (!anggota) {
+                    throw new Error('Data anggota tidak ditemukan');
+                }
+                
+                // Fill form with member data
+                document.getElementById('nomor_anggota').value = anggota.nomor_anggota || '';
+                document.getElementById('nama').value = anggota.nama || '';
+                document.getElementById('telepon').value = anggota.telepon || '';
+                document.getElementById('email').value = anggota.email || '';
+                document.getElementById('alamat').value = anggota.alamat || '';
+                document.getElementById('status').value = anggota.status || 'Aktif';
+                
+                // Set edit mode
+                editMode = true;
+                currentEditId = id;
+                document.getElementById('submitBtn').textContent = 'Update Anggota';
+                document.getElementById('form-anggota').classList.remove('form-hidden');
+                document.getElementById('toggleBtn').textContent = '− Tutup Form';
+                
+                // Scroll to form
+                document.getElementById('form-anggota').scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error('Error editing anggota:', error);
+            }
+        }
+
+        // Delete anggota
+        async function deleteAnggota(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus anggota ini?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id_anggota: id })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Anggota berhasil dihapus!');
+                    loadAnggota();
+                } else {
+                    alert('Error: ' + (result.message || result.error || 'Gagal menghapus anggota'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error('Error deleting anggota:', error);
+            }
+        }
+
+        // Format tanggal
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        // Auto-generate nomor anggota (opsional)
+        function generateNomorAnggota() {
+            // Anda bisa menyesuaikan logika generate sesuai kebutuhan
+            const timestamp = new Date().getTime().toString().slice(-4);
+            return `AGT${timestamp}`;
+        }
+
+        // Opsional: Auto-fill nomor anggota saat form dibuka
+        document.getElementById('form-anggota').addEventListener('click', function() {
+            if (!editMode && !document.getElementById('nomor_anggota').value) {
+                document.getElementById('nomor_anggota').value = generateNomorAnggota();
+            }
+        });
+    </script>
+</body>
+</html>
